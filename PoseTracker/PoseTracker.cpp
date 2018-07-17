@@ -17,7 +17,7 @@ PoseTracker::PoseTracker(string cam_uri, bool monocular, string config, string v
 
 PoseTracker::~PoseTracker()
 {
-  SLAMSystem_.Shutdown();
+  SLAMSystem_->Shutdown();
   delete SLAMSystem_;
 }
 
