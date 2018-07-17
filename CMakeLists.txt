@@ -120,3 +120,5 @@ target_link_libraries(mono_euroc ${PROJECT_NAME})
 add_executable(mono_HAL
 Examples/Monocular/mono_HAL.cc)
 target_link_libraries(mono_HAL ${PROJECT_NAME} ${HAL_LIBRARIES} ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
+
+add_subdirectory(PoseTracker)
