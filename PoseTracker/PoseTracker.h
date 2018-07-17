@@ -33,7 +33,7 @@ private:
   string cam_uri_;
   bool monocular_;
   string vocabFile_;
-  ORB_SLAM2::System SLAMSystem_;
+  ORB_SLAM2::System *SLAMSystem_;
 };
 
 #endif
