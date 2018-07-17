@@ -50,6 +50,7 @@ bool PoseTracker::Capture(Eigen::Matrix4d &pose,
   }
   else
   {
+    // need to add stereo rectification to this process
     cv::Mat im0, im1;
     im0 = images->at(0)->Mat().clone(); // get images from HAL array
     im1 = images->at(1)->Mat().clone();
@@ -63,6 +64,8 @@ bool PoseTracker::Capture(Eigen::Matrix4d &pose,
     VLOG(3) << "adding stereo image to system with timestamp: " << timestamp;
     mat_pose = SLAMSystem_->TrackStereo(im0, im1, timestamp);
   }
+  VLOG(2) << "pose mat rows: " << mat_pose.rows;
+  VLOG(2) << "pose mat cols: " << mat_pose.cols;
   // if tracking was successful
   // pull values from cv matrix to eigen matrix
   if (!mat_pose.empty())
