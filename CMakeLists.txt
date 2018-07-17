@@ -38,12 +38,18 @@ endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+find_package(HAL REQUIRED)
+find_package(GFlags REQUIRED)
+find_package(Glog REQUIRED)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
+${HAL_INCLUDE_DIRS}
+${GLOG_INCLUDE_DIRS}
+${GFLAGS_INCLUDE_DIRS}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -111,3 +117,6 @@ add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
 
+add_executable(mono_HAL
+Examples/Monocular/mono_HAL.cc)
+target_link_libraries(mono_HAL ${PROJECT_NAME} ${HAL_LIBRARIES} ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
