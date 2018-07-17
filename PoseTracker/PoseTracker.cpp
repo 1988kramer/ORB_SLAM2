@@ -9,15 +9,16 @@ PoseTracker::PoseTracker(string cam_uri, bool monocular, string config, string v
   LoadCameras();
   VLOG(3) << "initializing SLAM system";
   if (monocular_)
-    SLAMSystem_ = ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::MONOCULAR, use_viewer);
+    SLAMSystem_ = new ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::MONOCULAR, use_viewer);
   else
-    SLAMSystem_ = ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::STEREO, use_viewer);
+    SLAMSystem_ = new ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::STEREO, use_viewer);
   VLOG(3) << "SLAM system initialized";
 }
 
 PoseTracker::~PoseTracker()
 {
   SLAMSystem_.Shutdown();
+  delete SLAMSystem_;
 }
 
 void PoseTracker::getPose(Eigen::Matrix4d &pose, double &timestamp)
@@ -48,7 +49,7 @@ void PoseTracker::updatePoseLoop()
       }
       timestamp /= 1e9; // convert timestamp from ns to seconds
       VLOG(3) << "adding mono image to system with timestamp: " << timestamp;
-      SLAMSystem_.TrackMonocular(im,timestamp);
+      SLAMSystem_->TrackMonocular(im,timestamp);
     }
     else
     {
@@ -62,7 +63,7 @@ void PoseTracker::updatePoseLoop()
       }
       timestamp /= 1e9; // convert timestamp from ns to seconds
       VLOG(3) << "adding stereo image to system with timestamp: " << timestamp;
-      SLAMSystem_.TrackStereo(im0, im1, timestamp);
+      SLAMSystem_->TrackStereo(im0, im1, timestamp);
     }
   }
 }
