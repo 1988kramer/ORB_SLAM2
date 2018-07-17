@@ -21,51 +21,60 @@ PoseTracker::~PoseTracker()
   delete SLAMSystem_;
 }
 
-void PoseTracker::getPose(Eigen::Matrix4d &pose, double &timestamp)
+
+bool PoseTracker::Capture(Eigen::Matrix4d &pose,
+                          std::shared_ptr<hal::ImageArray> images)
 {
 
-}
+  images = hal::ImageArray::Create();
+  cv::Mat mat_pose;
 
-void PoseTracker::updatePoseLoop()
-{
-  while (true)
+  if (!cam_.Capture(*images)) // stop if capturing the next image fails
   {
-    std::shared_ptr<hal::ImageArray> images = hal::ImageArray::Create();
-
-    if (!cam_.Capture(*images)) // stop if capturing the next image fails
+    VLOG(0) << "failed to capture image";
+    return false;
+  }
+  if (monocular_)
+  {
+    cv::Mat im;
+    im = images->at(0)->Mat().clone(); // get image fram HAL array
+    double timestamp = images->Ref().device_time(); // get image timestamp in ns
+    if (im.empty()) // check if the obtained image is empty
     {
-      VLOG(0) << "failed to capture image";
-      break;
+      VLOG(0) << "captured mono image with timestamp: " << timestamp << " is empty";
+      return false;
     }
-    if (monocular_)
+    timestamp /= 1e9; // convert timestamp from ns to seconds
+    VLOG(3) << "adding mono image to system with timestamp: " << timestamp;
+    mat_pose = SLAMSystem_->TrackMonocular(im,timestamp);
+  }
+  else
+  {
+    cv::Mat im0, im1;
+    im0 = images->at(0)->Mat().clone(); // get images from HAL array
+    im1 = images->at(1)->Mat().clone();
+    double timestamp = images->Ref().device_time(); // get image timestamp in ns
+    if (im0.empty() || im1.empty()) // check if either image is empty
     {
-      cv::Mat im;
-      im = images->at(0)->Mat().clone(); // get image fram HAL array
-      double timestamp = images->Ref().device_time(); // get image timestamp in ns
-      if (im.empty()) // check if the obtained image is empty
-      {
-        VLOG(0) << "captured mono image with timestamp: " << timestamp << " is empty";
-        break;
-      }
-      timestamp /= 1e9; // convert timestamp from ns to seconds
-      VLOG(3) << "adding mono image to system with timestamp: " << timestamp;
-      SLAMSystem_->TrackMonocular(im,timestamp);
+      VLOG(0) << "captured stereo image with timestamp: " << timestamp << " is empty";
+      return false;
     }
-    else
+    timestamp /= 1e9; // convert timestamp from ns to seconds
+    VLOG(3) << "adding stereo image to system with timestamp: " << timestamp;
+    mat_pose = SLAMSystem_->TrackStereo(im0, im1, timestamp);
+  }
+  // if tracking was successful
+  // pull values from cv matrix to eigen matrix
+  if (!mat_pose.empty())
+  {
+    for (int i = 0; i < 4; i++)
     {
-      cv::Mat im0, im1;
-      im0 = images->at(0)->Mat().clone(); // get images from HAL array
-      im1 = images->at(1)->Mat().clone();
-      double timestamp = images->Ref().device_time(); // get image timestamp in ns
-      if (im0.empty() || im1.empty()) // check if either image is empty
-      {
-        VLOG(0) << "captured stereo image with timestamp: " << timestamp << " is empty";
-      }
-      timestamp /= 1e9; // convert timestamp from ns to seconds
-      VLOG(3) << "adding stereo image to system with timestamp: " << timestamp;
-      SLAMSystem_->TrackStereo(im0, im1, timestamp);
+      for (int j = 0; j < 4; j++)
+        pose_(i,j) = mat_pose.at<double>(i,j);
     }
   }
+  pose = pose_;
+  return true;
 }
 
 // load cameras from hal URIs

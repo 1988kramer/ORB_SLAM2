@@ -21,8 +21,6 @@
 
 #include<iostream>
 #include<algorithm>
-#include<fstream>
-#include<chrono>
 
 #include<HAL/Camera/CameraDevice.h>
 #include<HAL/Messages/Matrix.h>
@@ -44,107 +42,107 @@ void LoadCamera();
 
 int main(int argc, char **argv)
 {
-	google::InitGoogleLogging(argv[0]);
-	google::ParseCommandLineFlags(&argc, &argv, true);
+  google::InitGoogleLogging(argv[0]);
+  google::ParseCommandLineFlags(&argc, &argv, true);
 
-	FLAGS_stderrthreshold = 0;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
-	FLAGS_colorlogtostderr = 1;
-	FLAGS_logtostderr = 1;
-	
-	LoadCamera();
+  FLAGS_stderrthreshold = 0;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
+  FLAGS_colorlogtostderr = 1;
+  FLAGS_logtostderr = 1;
 
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(FLAGS_vocab,FLAGS_settings,ORB_SLAM2::System::MONOCULAR,true);
+  LoadCamera();
 
-    LOG(INFO) << "Start processing sequence ...";
+  // Create SLAM system. It initializes all system threads and gets ready to process frames.
+  ORB_SLAM2::System SLAM(FLAGS_vocab,FLAGS_settings,ORB_SLAM2::System::MONOCULAR,true);
 
-    // Main loop
-	vector<float> vTimesTrack;
-	vector<double> vTimestamps;
-	int ni = 0;
-    cv::Mat im;
-	std::shared_ptr<hal::ImageArray> images = hal::ImageArray::Create();
-	bool capture_success = true;
+  LOG(INFO) << "Start processing sequence ...";
 
-    while(true)
-    {
-	VLOG(3) << "capturing image";
-	capture_success = camera_device.Capture(*images);
-	if (!capture_success)
-		break;
-        VLOG(3) << "image captured";
-        im = images->at(0)->Mat().clone();
-        double tframe = images->Ref().device_time();
-		tframe /= 1e9;
-		VLOG(3) << "adding timestamp to timestamp log";
-		vTimestamps.push_back(tframe);
-        if(im.empty())
-            LOG(FATAL) << "failed to load image with timestamp: " << tframe;
-	VLOG(3) << "got image with timestamp: " << tframe;
+  // Main loop
+  vector<float> vTimesTrack;
+  vector<double> vTimestamps;
+  int ni = 0;
+  cv::Mat im;
+  std::shared_ptr<hal::ImageArray> images = hal::ImageArray::Create();
+  bool capture_success = true;
+
+  while(true)
+  {
+    VLOG(3) << "capturing image";
+    capture_success = camera_device.Capture(*images);
+    if (!capture_success)
+      break;
+    VLOG(3) << "image captured";
+    im = images->at(0)->Mat().clone();
+    double tframe = images->Ref().device_time();
+    tframe /= 1e9;
+    VLOG(3) << "adding timestamp to timestamp log";
+    vTimestamps.push_back(tframe);
+    if(im.empty())
+      LOG(FATAL) << "failed to load image with timestamp: " << tframe;
+    VLOG(3) << "got image with timestamp: " << tframe;
 
 #ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #else
-        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
+    std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
-        // Pass the image to the SLAM system
-	VLOG(3) << "adding image to SLAM system";
-        SLAM.TrackMonocular(im,tframe);
-	VLOG(3) << "image added to SLAM system";
+    // Pass the image to the SLAM system
+    VLOG(3) << "adding image to SLAM system";
+    SLAM.TrackMonocular(im,tframe);
+    VLOG(3) << "image added to SLAM system";
 #ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 #else
-        std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
+    std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
 #endif
 
-        double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+    double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
-        vTimesTrack.push_back(ttrack);
+    vTimesTrack.push_back(ttrack);
 
-        // Wait to load the next frame
-        double T = vTimestamps[ni+1]-tframe;
-	/*
+    // Wait to load the next frame
+    double T = vTimestamps[ni+1]-tframe;
+    /*
         if(ttrack<T)
-	{
-		double sleep_time = (T-ttrack)*1e6;
-		VLOG(3) << "sleeping for " << sleep_time;
+  {
+    double sleep_time = (T-ttrack)*1e6;
+    VLOG(3) << "sleeping for " << sleep_time;
             usleep(sleep_time);
-	}
-	*/
-	ni++;
-    }
+  }
+  */
+    ni++;
+  }
 
-    // Stop all threads
-    SLAM.Shutdown();
+  // Stop all threads
+  SLAM.Shutdown();
 
-	int nImages = vTimesTrack.size();
+  int nImages = vTimesTrack.size();
 
-    // Tracking time statistics
-    sort(vTimesTrack.begin(),vTimesTrack.end());
-    float totaltime = 0;
-    for(int ni=0; ni<nImages; ni++)
-    {
-        totaltime+=vTimesTrack[ni];
-    }
-    std::cout << "-------" << std::endl << std::endl;
-    std::cout << "median tracking time: " << vTimesTrack[nImages/2] << std::endl;
-    std::cout << "mean tracking time: " << totaltime/nImages << std::endl;
+  // Tracking time statistics
+  sort(vTimesTrack.begin(),vTimesTrack.end());
+  float totaltime = 0;
+  for(int ni=0; ni<nImages; ni++)
+  {
+    totaltime+=vTimesTrack[ni];
+  }
+  std::cout << "-------" << std::endl << std::endl;
+  std::cout << "median tracking time: " << vTimesTrack[nImages/2] << std::endl;
+  std::cout << "mean tracking time: " << totaltime/nImages << std::endl;
 
-    // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+  // Save camera trajectory
+  SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
 
-    return 0;
+  return 0;
 }
 
 void LoadCamera()
 {
-	try
-	{
-		camera_device = hal::Camera(hal::Uri(FLAGS_cam));
-	}
-	catch (hal::DeviceException &e)
-	{
-		LOG(ERROR) << "Error loading camera device: " << e.what();
-	}
+  try
+  {
+    camera_device = hal::Camera(hal::Uri(FLAGS_cam));
+  }
+  catch (hal::DeviceException &e)
+  {
+    LOG(ERROR) << "Error loading camera device: " << e.what();
+  }
 }

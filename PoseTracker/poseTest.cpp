@@ -3,6 +3,7 @@
 #include<thread>
 
 #include<glog/logging.h>
+#
 
 #include "PoseTracker.h"
 
@@ -22,5 +23,10 @@ int main(int argc, char **argv)
   FLAGS_logtostderr = 1;
 
   PoseTracker tracker(FLAGS_cam, true, FLAGS_settings, FLAGS_vocab, true);
-  tracker.updatePoseLoop();
+  std::shared_ptr<hal::ImageArray> images;
+  Eigen::Matrix4d pose;
+  while (tracker.Capture(pose, images))
+  {
+    VLOG(0) << "got pose: " << pose;
+  }
 }

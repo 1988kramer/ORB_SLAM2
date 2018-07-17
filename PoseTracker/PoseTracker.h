@@ -22,14 +22,14 @@ public:
   PoseTracker(string cam_uri, bool monocular, string config, string vocab, bool use_viewer = false);
   ~PoseTracker();
 
-  void getPose(Eigen::Matrix4d &pose, double &timestamp); // returns the SLAM system's current
-                                                          // pose estimate and the timestamp
-  void updatePoseLoop(); // adds new images to the SLAM system and updates the pose estimate
+  bool Capture(Eigen::Matrix4d &pose,
+               std::shared_ptr<hal::ImageArray> images); // adds new images to the SLAM system and updates the pose estimate
                          // should be run in a separate thread from other functions
 private:
   bool LoadCameras(); // loads camera (or cameras) from the uri's provided in the constructor
 
   hal::Camera cam_;
+  Eigen::Matrix4d pose_;
   string cam_uri_;
   bool monocular_;
   string vocabFile_;
