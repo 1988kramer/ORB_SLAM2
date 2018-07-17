@@ -9,9 +9,9 @@ PoseTracker::PoseTracker(string cam_uri, bool monocular, string config, string v
   LoadCameras();
   VLOG(3) << "initializing SLAM system";
   if (monocular_)
-    SLAMSystem_(vocab, config, ORB_SLAM2::System::MONOCULAR, use_viewer);
+    SLAMSystem_ = ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::MONOCULAR, use_viewer);
   else
-    SLAMSystem_(vocab, config, ORB_SLAM2::System::STEREO, use_viewer);
+    SLAMSystem_ = ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::STEREO, use_viewer);
   VLOG(3) << "SLAM system initialized";
 }
 
@@ -73,10 +73,12 @@ bool PoseTracker::LoadCameras()
   // load camera (or cameras)
   try
   {
-    cam_ = hal::Camera(hal::Uri(cam0_uri_));
+    cam_ = hal::Camera(hal::Uri(cam_uri_));
   }
   catch (hal::DeviceException &e)
   {
     LOG(ERROR) << "Error loading camera device: " << e.what();
+    return false;
   }
+  return true;
 }
