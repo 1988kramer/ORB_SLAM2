@@ -9,9 +9,14 @@ PoseTracker::PoseTracker(string cam_uri, bool monocular, string config, string v
   LoadCameras();
   VLOG(3) << "initializing SLAM system";
   if (monocular_)
+  {
     SLAMSystem_ = new ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::MONOCULAR, use_viewer);
+  }
   else
+  {
     SLAMSystem_ = new ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::STEREO, use_viewer);
+    LoadRectParams();
+  }
   VLOG(3) << "SLAM system initialized";
 }
 
@@ -19,6 +24,48 @@ PoseTracker::~PoseTracker()
 {
   SLAMSystem_->Shutdown();
   delete SLAMSystem_;
+}
+
+bool PoseTracker::LoadRectParams()
+{
+  cv::FileStorage fs_settings(config, cv::FileStorage::READ);
+  if (!fs_settings.isOpened())
+  {
+    VLOG(0) << "could not open config file";
+    return false;
+  }
+
+  cv::Mat K_l, K_r, P_l, P_r, R_l, R_r, D_l, D_r;
+  fs_settings["LEFT.K"] >> K_l;
+  fs_settings["RIGHT.K"] >> K_r;
+  fs_settings["LEFT.P"] >> P_l;
+  fs_settings["RIGHT.P"] >> P_r;
+  fs_settings["LEFT.R"] >> R_l;
+  fs_settings["RIGHT.R"] >> R_r;
+  fs_settings["LEFT.D"] >> D_l;
+  fs_settings["RIGHT.D"] >> D_r;
+
+  int rows_l = fs_settings["LEFT.height"];
+  int cols_l = fs_settings["LEFT.width"];
+  int rows_r = fs_settings["RIGHT.height"];
+  int cols_r = fs_settings["RIGHT.width"];
+
+  if (K_l.empty() || K_r.empty() || P_l.empty() ||
+      P_r.empty() || R_l.empty() || R_r.empty() ||
+      D_l.empty() || D_r.empty() || rows_l == 0 ||
+      cols_l == 0 || rows_r == 0 || cols_r == 0)
+  {
+    VLOG(0) << "stereo rectification parameters are missing";
+    return false;
+  }
+  cv::initUndistortRectifyMap(K_l, D_l, R_l,
+                              P_l.rowRange(0,3).colRange(0,3),
+                              cv::Size(cols_l, rows_l),
+                              CV_32F, M1l_, M2l_);
+  cv::initUndistortRectifyMap(K_r, D_r, R_r,
+                              P_r.rowRange(0,3).colRange(0,3),
+                              cv::Size(cols_r, rows_r),
+                              CV_32F, M1r_, M2r_);
 }
 
 
@@ -51,9 +98,12 @@ bool PoseTracker::Capture(Eigen::Matrix4d &pose,
   else
   {
     // need to add stereo rectification to this process
-    cv::Mat im0, im1;
+    cv::Mat im0, im1, im0_rect, im1_rect;
     im0 = images->at(0)->Mat().clone(); // get images from HAL array
     im1 = images->at(1)->Mat().clone();
+    VLOG(3) << "rectifying images";
+    cv::remap(im0, im0_rect, M1l_, M2l_, cv::INTER_LINEAR);
+    cv::remap(im1, im1_rect, M1r_, M2r_, cv::INTER_LINEAR);
     double timestamp = images->Ref().device_time(); // get image timestamp in ns
     if (im0.empty() || im1.empty()) // check if either image is empty
     {
@@ -62,7 +112,7 @@ bool PoseTracker::Capture(Eigen::Matrix4d &pose,
     }
     timestamp /= 1e9; // convert timestamp from ns to seconds
     VLOG(3) << "adding stereo image to system with timestamp: " << timestamp;
-    mat_pose = SLAMSystem_->TrackStereo(im0, im1, timestamp);
+    mat_pose = SLAMSystem_->TrackStereo(im0_rect, im1_rect, timestamp);
   }
   VLOG(2) << "pose mat rows: " << mat_pose.rows;
   VLOG(2) << "pose mat cols: " << mat_pose.cols;
