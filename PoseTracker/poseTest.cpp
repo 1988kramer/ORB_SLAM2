@@ -25,8 +25,10 @@ int main(int argc, char **argv)
   PoseTracker tracker(FLAGS_cam, true, FLAGS_settings, FLAGS_vocab, true);
   std::shared_ptr<hal::ImageArray> images;
   Eigen::Matrix4d pose;
+  int num_frame = 0;
   while (tracker.Capture(pose, images))
   {
-    VLOG(0) << "got pose: " << pose;
+    if (num_frame++ % 20 == 0)
+      VLOG(0) << "got pose: " << pose;
   }
 }
