@@ -85,7 +85,8 @@ bool PoseTracker::Capture(Eigen::Matrix4d &pose,
   if (monocular_)
   {
     cv::Mat im;
-    im = images->at(0)->Mat().clone(); // get image fram HAL array
+    cv::resize(images->at(0)->Mat().clone(), im,
+               cv::Size(640,480), 0, 0, cv::INTER_AREA); // get image fram HAL array
     double timestamp = images->Ref().device_time(); // get image timestamp in ns
     if (im.empty()) // check if the obtained image is empty
     {
@@ -100,8 +101,10 @@ bool PoseTracker::Capture(Eigen::Matrix4d &pose,
   {
     // need to add stereo rectification to this process
     cv::Mat im0, im1, im0_rect, im1_rect;
-    im0 = images->at(0)->Mat().clone(); // get images from HAL array
-    im1 = images->at(1)->Mat().clone();
+    cv::resize(images->at(0)->Mat().clone(), im0,
+               cv::Size(640,480), 0, 0, cv::INTER_AREA); // get images from HAL array
+    cv::resize(images->at(1)->Mat().clone(), im1,
+               cv::Size(640,480), 0, 0, cv::INTER_AREA);
     VLOG(3) << "rectifying images";
     cv::remap(im0, im0_rect, M1l_, M2l_, cv::INTER_LINEAR);
     cv::remap(im1, im1_rect, M1r_, M2r_, cv::INTER_LINEAR);
