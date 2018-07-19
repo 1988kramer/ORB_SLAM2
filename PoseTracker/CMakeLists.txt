@@ -13,6 +13,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/..
     ${PROJECT_SOURCE_DIR}/../include
+    ${PROJECT_SOURCE_DIR}/../../socket_test
     ${EIGEN3_INCLUDE_DIR}
     ${Pangolin_INCLUDE_DIRS}
     ${HAL_INCLUDE_DIRS}
@@ -25,6 +26,7 @@ link_directories(/home/arpg/code/ORB_SLAM2/lib)
 set(SRCS
     poseTest.cpp
     PoseTracker.cpp
+    ${PROJECT_SOURCE_DIR}/../../socket_test/udp_send.cpp
     )
 
 add_executable(${PROJECT_NAME} ${SRCS} ${HEADERS})
