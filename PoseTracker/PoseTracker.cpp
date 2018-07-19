@@ -15,7 +15,7 @@ PoseTracker::PoseTracker(string cam_uri, bool monocular, string config, string v
   else
   {
     SLAMSystem_ = new ORB_SLAM2::System(vocab, config, ORB_SLAM2::System::STEREO, use_viewer);
-    LoadRectParams();
+    LoadRectParams(config);
   }
   VLOG(3) << "SLAM system initialized";
 }
@@ -26,7 +26,7 @@ PoseTracker::~PoseTracker()
   delete SLAMSystem_;
 }
 
-bool PoseTracker::LoadRectParams()
+bool PoseTracker::LoadRectParams(string config)
 {
   cv::FileStorage fs_settings(config, cv::FileStorage::READ);
   if (!fs_settings.isOpened())
@@ -66,6 +66,7 @@ bool PoseTracker::LoadRectParams()
                               P_r.rowRange(0,3).colRange(0,3),
                               cv::Size(cols_r, rows_r),
                               CV_32F, M1r_, M2r_);
+  return false;
 }
 
 
