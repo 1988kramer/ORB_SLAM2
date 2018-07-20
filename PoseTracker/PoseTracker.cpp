@@ -127,7 +127,7 @@ bool PoseTracker::Capture(Eigen::Matrix4d &pose,
     for (int i = 0; i < 4; i++)
     {
       for (int j = 0; j < 4; j++)
-        pose_(i,j) = mat_pose.at<double>(i,j);
+        pose_(i,j) = mat_pose.at<float>(i,j);
     }
   }
   pose = pose_;

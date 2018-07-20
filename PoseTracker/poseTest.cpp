@@ -36,8 +36,9 @@ int main(int argc, char **argv)
   dobule roll, pitch, yaw;
   while (tracker.Capture(pose, images))
   {
-    matToEuler(pose.rowRange(0,3).colRange(0,3), roll, pitch, yaw);
-    node.sendPose(pose.at<double>(1,3),pose.at<double>(2,3),yaw);
+    Eigen::Matrix4d world_to_car = pose.inverse();
+    matToEuler(world_to_car.block<0,0>(3,3), roll, pitch, yaw);
+    node.sendPose(world_to_car(2,3), -1.0 * world_to_car(0,3),-1.0*yaw);
   }
 }
 
@@ -53,25 +54,24 @@ bool isRotationMatrix(cv::Mat &R)
      
 }
 
-void matToEuler(cv::Mat &rot, double &roll, double &pitch, double &yaw)
+void matToEuler(Eigen::Matrix3d &rot, double &roll, double &pitch, double &yaw)
 {
   assert(isRotationMatrix(rot));
      
-  float sy = sqrt(R.at<double>(0,0) * R.at<double>(0,0) +  R.at<double>(1,0) * R.at<double>(1,0) );
+  float sy = sqrt(rot(0,0) * rot(0,0) +  rot(1,0) * rot(1,0) );
  
   bool singular = sy < 1e-6; // If
  
-  float x, y, z;
   if (!singular)
   {
-    roll = atan2(R.at<double>(2,1) , R.at<double>(2,2));
-    pitch = atan2(-R.at<double>(2,0), sy);
-    yaw = atan2(R.at<double>(1,0), R.at<double>(0,0));
+    pitch = atan2(rot(2,1) , rot(2,2));
+    yaw = atan2(-rot(2,0), sy);
+    roll = atan2(rot(1,0), rot(0,0));
   }
   else
   {
-    roll = atan2(-R.at<double>(1,2), R.at<double>(1,1));
-    pitch = atan2(-R.at<double>(2,0), sy);
-    yaw = 0;
+    pitch = atan2(-rot(1,2), rot(1,1));
+    yaw = atan2(-rot(2,0), sy);
+    roll = 0;
   }
 } 
